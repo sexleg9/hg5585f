@@ -4,7 +4,7 @@
 
  角色：PPPoE 主路由（不是透明桥）。
    光纤 ── HG5585F ── lan1..4 ── 小米 BE6500 Pro（AP）/ PC / 平板
-   WAN = pon0.995（VLAN 995 / PPPoE）   LAN = 192.168.31.1/24 + DHCP/RA
+   WAN = pon0.41（VLAN 41 / PPPoE）   LAN = 192.168.31.1/24 + DHCP/RA
 
  首次使用，按顺序做完这 4 步：
 
