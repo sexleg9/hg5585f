@@ -6,8 +6,8 @@
 #           → 早于 /etc/init.d/network (START=20)，所以改完 netifd 才起来。
 #
 # 模式：HG5585F = PPPoE 主路由（不是透明桥）
-#   pon0.995  = 联通 INTERNET VLAN 995，PPPoE over VLAN
-#   br-lan    = lan1..4（不含 pon0.995）
+#   pon0.41  = 联通 INTERNET VLAN 41，PPPoE over VLAN
+#   br-lan    = lan1..4（不含 pon0.41）
 #   lan       = 192.168.31.1/24 + DHCP/RA
 #   wan6      = DHCPv6（联通有 IPv6）
 #
@@ -24,13 +24,13 @@ log() {
 	logger -t hg5585f-setup "$*"
 }
 
-VLAN_INTERNET=995
+VLAN_INTERNET=41
 LAN_ADDR=192.168.31.1
 LAN_NETMASK=255.255.255.0
 
 # ---------------------------------------------------------------------------
 # 1. 重建 network.device
-#    br-lan 只含 lan1..4；pon0.995 只作为 WAN 的 802.1q 设备存在。
+#    br-lan 只含 lan1..4；pon0.41 只作为 WAN 的 802.1q 设备存在。
 # ---------------------------------------------------------------------------
 n=$(uci -q show network 2>/dev/null | grep -c '=device$')
 while [ "$n" -gt 0 ]; do
@@ -39,7 +39,7 @@ while [ "$n" -gt 0 ]; do
 done
 
 uci -q delete network.br_lan
-uci -q delete network.pon0_995
+uci -q delete network.pon0_41
 
 uci -q batch <<EOF
 set network.br_lan='device'
@@ -50,11 +50,11 @@ add_list network.br_lan.ports='lan2'
 add_list network.br_lan.ports='lan3'
 add_list network.br_lan.ports='lan4'
 
-set network.pon0_995='device'
-set network.pon0_995.name='pon0.995'
-set network.pon0_995.type='8021q'
-set network.pon0_995.ifname='pon0'
-set network.pon0_995.vid='${VLAN_INTERNET}'
+set network.pon0_41='device'
+set network.pon0_41.name='pon0.41'
+set network.pon0_41.type='8021q'
+set network.pon0_41.ifname='pon0'
+set network.pon0_41.vid='${VLAN_INTERNET}'
 EOF
 
 # ---------------------------------------------------------------------------
@@ -80,21 +80,21 @@ delete network.lan.ip6prefix
 EOF
 
 # ---------------------------------------------------------------------------
-# 3. wan：联通 PPPoE over VLAN 995
+# 3. wan：联通 PPPoE over VLAN 41
 #    账号密码刻意留空，刷完填：
 #      uci set network.wan.username='...'
 #      uci set network.wan.password='...'
 #      uci commit network && /etc/init.d/network restart
 #
 #    MTU=1500 而非 1492（2026-10-22 审计 §E.4/Q5）：netifd 把 wan.mtu 同时
-#    下发给 pon0.995 设备和 pppd，1492 被双重扣减 → pppoe-wan 实际 1484 /
+#    下发给 pon0.41 设备和 pppd，1492 被双重扣减 → pppoe-wan 实际 1484 /
 #    MSS 1444。设 1500 → pppd 扣 8 字节 PPPoE 头 → pppoe-wan=1492 /
 #    MSS=1452（标准值）；fw4 的 MSS clamp 自动跟随。PMTU 黑洞由
 #    tcp_mtu_probing=1 兜底（files/etc/sysctl.d/99-network-tuning.conf）。
 # ---------------------------------------------------------------------------
 uci -q batch <<EOF
 set network.wan='interface'
-set network.wan.device='pon0.995'
+set network.wan.device='pon0.41'
 set network.wan.proto='pppoe'
 set network.wan.ipv6='1'
 set network.wan.auto='1'
@@ -300,15 +300,15 @@ uci -q commit system
 # ---------------------------------------------------------------------------
 # 9. 自检
 # ---------------------------------------------------------------------------
-if [ "$(uci -q get network.wan.device)" = "pon0.995" ] &&
+if [ "$(uci -q get network.wan.device)" = "pon0.41" ] &&
    [ "$(uci -q get network.wan.proto)" = "pppoe" ]; then
-	log "OK: wan = pon0.995 / pppoe / mtu $(uci -q get network.wan.mtu)"
+	log "OK: wan = pon0.41 / pppoe / mtu $(uci -q get network.wan.mtu)"
 else
-	log "ERROR: wan 没有配置成 pon0.995/pppoe"
+	log "ERROR: wan 没有配置成 pon0.41/pppoe"
 fi
 
-if uci -q get network.br_lan.ports | grep -qw 'pon0.995'; then
-	log "ERROR: br-lan 里仍含 pon0.995，桥接会再次把 LAN 放进运营商二层"
+if uci -q get network.br_lan.ports | grep -qw 'pon0.41'; then
+	log "ERROR: br-lan 里仍含 pon0.41，桥接会再次把 LAN 放进运营商二层"
 else
 	log "OK: br-lan 成员 = $(uci -q get network.br_lan.ports | tr '\n' ' ')"
 fi
