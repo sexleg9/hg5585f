@@ -41,10 +41,10 @@ config omci 'line0_omci'
 config oam 'line0_oam'
 	option line 'line0'
 	option device 'oam0'
-	# ieee = 802.3ah；ctc = 802.3ah + CTC 扩展
 	option operator 'ctc'
 	option ctc_oui '111111'
 	option ctc_versions '21 30'
+	option ge_ports '1'
 
 	option vendor_id ''
 	option model ''
