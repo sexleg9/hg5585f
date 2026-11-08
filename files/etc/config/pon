@@ -2,7 +2,7 @@
 #
 # 依据
 #   * 原厂 /fh_tool/api GetDevInfo：current_ponmode = EPON_10G，asymmetric
-#     → line mode 只能是 epon-10g-1g（不是 xgpon，也不是 epon-10g-10g）
+#     → line mode 只能是 XG-PON（不是 xgpon，也不是 epon-10g-10g）
 #   * 原厂 GetDevInfo：port_num = 4 → ge_ports 必须写 4
 #     （上游 airoha-ponctl 的默认值是 1，不改会少报 3 个以太口）
 #   * OAM profile 默认 ctc：Issue #42 是同型号同线路的真机实测
@@ -18,7 +18,7 @@
 
 config xpon 'line0'
 	option device 'pon0'
-	option mode 'epon-10g-1g'
+	option mode 'XG-PON'
 	# Accepts 16 raw hex digits or VEND followed by 8 hex digits.
 	option serial_number ''
 	# Accepts text:VALUE or hex: followed by 72 hex digits.
