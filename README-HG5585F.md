@@ -1,4 +1,5 @@
 # PonWrt for FiberHome HG5585F
+感谢Bernardxu123这个是fork他的，按自己的实际需求来的
 
 `pbs05/ponwrt` 的个人 fork，只针对 **烽火 HG5585F（Airoha AN7581，联通 10G-EPON 非对称）** 做收敛与预设：
 上游默认编 12 个机型，这里只编 **CU + CT**；默认形态是 **PPPoE 主路由**（不是透明桥）；分流层默认编入 **honk（eBPF）**，可切换 dae / passwall / openclash / none。
