@@ -27,7 +27,7 @@ config xpon 'line0'
 config omci 'line0_omci'
 	option line 'line0'
 	option device 'omci0'
-	option omcc_version '0xb0'
+	option omcc_version '0x86'
 	option disable_enhanced_security '0'
 
 	option vendor_id ''
