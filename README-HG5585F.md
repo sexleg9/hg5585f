@@ -40,7 +40,7 @@
 
 - **底座**：ImmortalWrt SNAPSHOT（`CONFIG_USE_APK=y`、`CONFIG_SIGNED_PACKAGES` / `SIGN_FIRMWARE=y`），`airoha/an7581` target。
 - **PON**：`kmod-airoha-xpon`、`kmod-airoha-paged-bosa`、`airoha-ponctl`、`airoha-pond`、`luci-app-pon`、`pon-watchdog`；**不含 EN7572 前端**。
-- **网络/路由**：`firewall4` + `nftables`（fullcone、flowtable）、`ppp` / `ppp-mod-pppoe`、`dnsmasq-full`、`odhcpd-ipv6only`、`kmod-nft-tproxy`、`kmod-tun`、`kmod-wireguard`、`kmod-sched-cake`、`kmod-tcp-bbr`、`kmod-nf-conntrack-bridge`。
+- **网络/路由**：`firewall4` + `nftables`（fullcone、flowtable）、`ppp` / `ppp-mod-pppoe`、`dnsmasq-full`、`odhcpd-ipv6only`、`kmod-nft-tproxy`、`kmod-tun`、`kmod-wireguard`、`kmod-sched-cake`、`kmod-tcp-bbr`、`kmod-nf-conntrack-bridge`zerotier.vsftpd.ksmbd .rtp2httpd.upnp.sqm.aria2.网络共享
 - **分流（多选一）**：`honk`（预编译 `honk-core` + 内嵌 doona UI + native API + LuCI 服务页）、`luci-app-honk`、`luci-lib-daeuniverse`；或 `dae` / `passwall` / `openclash` / `none`。
 - **无线**：`kmod-mt7915e`、`kmod-mt7916-firmware`（默认 disabled，随时一行打开）。
 - **运维**：`ethtool-full`、`ip-full`、`nand-utils`、`ubi-utils`、`fitblk`、`tcpdump`、`zram-swap`、`/sbin/tempinfo`（LuCI 温度行）。
