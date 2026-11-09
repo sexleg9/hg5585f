@@ -15,7 +15,7 @@
 ### 内容特点
 
 - **可复现**：honk 预编译版本按 **sha256 钉死**；tag 构建跳过自动同步；产物带 `profiles.json` / `config.buildinfo` / `config.full` / `sha256sums.txt`。
-- **现网参数进镜像**：`uci-defaults` 首启即落 `192.168.31.1`、`pon0.995` PPPoE（`wan.mtu=1500` → 协商 1492）、`wan6` DHCPv6、DHCP/RA、时区/NTP —— 刷完不用手配网络。
+- **现网参数进镜像**：`uci-defaults` 首启即落 `192.168.31.1`、`pon0.41` PPPoE（`wan.mtu=1500` → 协商 1492）、`wan6` DHCPv6、DHCP/RA、时区/NTP —— 刷完不用手配网络。
 - **带救援镜像**：每个机型除 `sysupgrade.itb` 还产出 `initramfs-recovery.itb`（U-Boot 内存启动）。
 - **调优进镜像**：`packet_steering=2`（绕开 airoha NAPI 名不匹配导致 RPS 全塌 CPU0）、以太网 IRQ 绑核、mt76 NAPI 绑核、16 MB TCP 缓冲 / `backlog=16384` / `tcp_mtu_probing` 等 sysctl、`dnsmasq cachesize=1000`、`zram-swap`、`nf_conntrack_acct/events=0`。
 - **PON 可靠性**：`pon-watchdog` 兜底上游 Issue #42（10G-EPON 冷启动 MPCP 1 Hz 自循环），只拆 WAN、永不自动重启。
@@ -240,17 +240,17 @@ HG5585F 侧：
 
 ```
 pon0                 PON 口
-pon0.995             802.1q VLAN 995 = 联通 INTERNET（WAN）
-wan                  proto=pppoe / device=pon0.995 / UCI MTU·MRU 1500（pppd 协商 1492）
+pon0.41             802.1q VLAN 41 = 联通 INTERNET（WAN）
+wan                  proto=pppoe / device=pon0.41 / UCI MTU·MRU 1500（pppd 协商 1492）
 wan6                 @wan / dhcpv6（联通 IPv6）
-br-lan               lan1 lan2 lan3 lan4（不含 pon0.995）
+br-lan               lan1 lan2 lan3 lan4（不含 pon0.41）
 lan                  192.168.31.1/24 + DHCP/RA
 DHCP 静态租约         默认不预置；刷完在 LuCI/DHCP 里按需添加（不要提交设备 MAC）
 WiFi                 radio 默认 disabled
 管理                 http://192.168.31.1（LAN 内）
 ```
 
-**为什么 `pon0.995` 不进 br-lan**：PPPoE 要在 WAN 上终结，`pon0.995` 是 WAN 的
+**为什么 `pon0.41` 不进 br-lan**：PPPoE 要在 WAN 上终结，`pon0.41` 是 WAN 的
 802.1q 设备；把它桥进 LAN 就退回透明桥了。主路由模式下 LAN 与运营商二层隔离，
 `ont.py` / `光猫通道开关` 这套开通道工具不再需要。
 
@@ -262,8 +262,8 @@ WiFi                 radio 默认 disabled
 如果只是想把 HG5585F 当透明桥（下面再挂主路由），手工改：
 
 ```sh
-# pon0.995 加回 br-lan，wan 退回 pon0/proto=none，关 DHCP
-uci add_list network.br_lan.ports='pon0.995'
+# pon0.41 加回 br-lan，wan 退回 pon0/proto=none，关 DHCP
+uci add_list network.br_lan.ports='pon0.41'
 uci set network.wan.device='pon0'
 uci set network.wan.proto='none'
 uci set dhcp.lan.ignore='1'
@@ -271,7 +271,7 @@ uci commit network && uci commit dhcp
 /etc/init.d/network restart && /etc/init.d/dnsmasq restart
 ```
 
-注意：桥接模式下看门狗需要拆 `lan` 才能卸载 `pon0.995`，会短暂断管理面；本版默认的
+注意：桥接模式下看门狗需要拆 `lan` 才能卸载 `pon0.41`，会短暂断管理面；本版默认的
 `ifdown wan` 恢复逻辑是按主路由模式写的。
 
 ### 6.1 启用 WiFi（可选）
@@ -365,7 +365,7 @@ registered_lifetime_ms: 600~950
 ### 恢复序列（只拆 WAN）
 
 ```
-ifdown wan → 删 pon0.995 → ip link set pon0 down → pond stop
+ifdown wan → 删 pon0.41 → ip link set pon0 down → pond stop
 → modprobe -r airoha_xpon（校验确实卸载）
 → modprobe airoha_xpon → pon reload → pond start
 → ip link set pon0 up → ifup wan
@@ -400,9 +400,9 @@ cat /tmp/pon-watchdog.log
 
 **待实测确认的假设**：
 
-1. 联通 995 是否真是 `pon0` 上的 802.1q tag → `tcpdump -i pon0 -e -n vlan`
-2. PPPoE 在 `pon0.995` 上能否拨通（UCI MTU/MRU 1500；pppd 协商 1492）
-3. `ifdown wan` + 删 `pon0.995` + 模块重载后，`ifup wan` 能否干净重建 VLAN
+1. 联通 41 是否真是 `pon0` 上的 802.1q tag → `tcpdump -i pon0 -e -n vlan`
+2. PPPoE 在 `pon0.41` 上能否拨通（UCI MTU/MRU 1500；pppd 协商 1492）
+3. `ifdown wan` + 删 `pon0.41` + 模块重载后，`ifup wan` 能否干净重建 VLAN
 4. `mpcp_timeouts` 在正常注册与故障自循环下的实际斜率
 5. `flow_offloading_hw` 在 AN7581 路由模式下是否真的带上 `flags offload`（`nft list flowtable inet fw4` / PPE debugfs）
 
@@ -480,7 +480,7 @@ cat /tmp/hg5585f-setup.log
 
 # 桥成员 / VLAN
 brctl show br-lan
-ip -d link show pon0.995
+ip -d link show pon0.41
 
 # LAN 有没有 DHCP
 logread -e dnsmasq
