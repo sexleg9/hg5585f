@@ -21,7 +21,7 @@
 #   - protocol-activating + mpcp_timeouts 增长  -> 判热
 #
 # 恢复（主路由模式）：
-#   只拆 WAN：ifdown wan → 删 pon0.995 → 卸/装 airoha_xpon → pon reload →
+#   只拆 WAN：ifdown wan → 删 pon0.41 → 卸/装 airoha_xpon → pon reload →
 #   pond start → ip link set pon0 up → ifup wan。
 #   绝不 ifdown lan —— LAN 是管理面，也是下游 AP/PC 的出口。
 #
@@ -76,8 +76,8 @@ recover() {
 	log "recover: 开始（只拆 WAN，保留 LAN/管理面）"
 
 	ifdown wan >/dev/null 2>&1 || true
-	ip link set pon0.995 down 2>/dev/null
-	ip link del pon0.995 2>/dev/null
+	ip link set pon0.41 down 2>/dev/null
+	ip link del pon0.41 2>/dev/null
 	ip link set pon0 down 2>/dev/null
 	/etc/init.d/airoha-pond stop >/dev/null 2>&1
 
@@ -89,7 +89,7 @@ recover() {
 	done
 
 	if [ -d /sys/module/airoha_xpon ]; then
-		log "recover: ERROR airoha_xpon 卸载失败（pon0.995/pond 仍有引用），本次恢复无效"
+		log "recover: ERROR airoha_xpon 卸载失败（pon0.41/pond 仍有引用），本次恢复无效"
 		ifup wan >/dev/null 2>&1 || true
 		return 1
 	fi
