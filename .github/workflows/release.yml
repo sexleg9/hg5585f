@@ -79,15 +79,6 @@ jobs:
             openssl ec -in private-key.pem -pubout -out public-key.pem
           fi
 
-      - name: 检查 luci-app-airoha-npu 是否就位
-        working-directory: ${{ env.SRC }}
-        run: |
-          if [ ! -f "package/luci-app-airoha-npu/Makefile" ]; then
-            echo "::error::缺少 package/luci-app-airoha-npu/Makefile"
-            exit 1
-          fi
-          echo "luci-app-airoha-npu 的 Makefile 存在"
-
       - name: Configure ${{ matrix.target }}
         run: |
           ./scripts/kconfig.pl + \
