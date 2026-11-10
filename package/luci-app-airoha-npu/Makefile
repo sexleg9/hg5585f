@@ -11,9 +11,8 @@ LUCI_TITLE:=LuCI Airoha SoC Status (NPU, CPU, Frame Engine)
 LUCI_DEPENDS:=+luci-base @TARGET_airoha
 
 include $(TOPDIR)/feeds/luci/luci.mk
-
 define Package/luci-app-airoha-npu/install
-    $(call LuciInstall,$(1))
-    chmod +x $(1)/usr/libexec/rpcd/luci.airoha_npu
+	$(call LuciInstall,$(1))
+	chmod +x $(1)/usr/libexec/rpcd/luci.airoha_npu
 endef
 # call BuildPackage - OpenWrt buildroot signature
