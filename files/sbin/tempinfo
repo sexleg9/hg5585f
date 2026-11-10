@@ -70,7 +70,6 @@ wifi=${wifi# }
 # 取最高
 wifi=$(echo "$wifi" | tr ' ' '\n' | sort -rn | head -1)
 
-
 # ---------- PON ----------
 pon_dev=""
 for d in /sys/class/net/pon*; do
