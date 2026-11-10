@@ -23,6 +23,36 @@ case "$1" in
 	-s|--short) MODE="short" ;;
 esac
 
+# ---------- WAN 实时速率（Mbps，两位小数，采样 1 秒） ----------
+wan_rate() {
+	dev="$1"
+	[ -n "$dev" ] || { echo "0.00 0.00"; return; }
+	r1=$(cat "/sys/class/net/$dev/statistics/rx_bytes" 2>/dev/null || echo 0)
+	t1=$(cat "/sys/class/net/$dev/statistics/tx_bytes" 2>/dev/null || echo 0)
+	sleep 1
+	r2=$(cat "/sys/class/net/$dev/statistics/rx_bytes" 2>/dev/null || echo 0)
+	t2=$(cat "/sys/class/net/$dev/statistics/tx_bytes" 2>/dev/null || echo 0)
+	awk -v r1="$r1" -v r2="$r2" -v t1="$t1" -v t2="$t2" \
+		'BEGIN{printf "%.2f %.2f\n", (r2-r1)*8/1000000, (t2-t1)*8/1000000}'
+}
+
+# ---------- WAN 设备探测 ----------
+wan_dev=""
+if [ -r /lib/functions/network.sh ]; then
+	. /lib/functions/network.sh 2>/dev/null
+	network_get_device wan_dev wan 2>/dev/null
+fi
+if [ -z "$wan_dev" ] && [ -r /proc/net/route ]; then
+	wan_dev=$(awk '$2=="00000000" {print $1; exit}' /proc/net/route)
+fi
+if [ -z "$wan_dev" ]; then
+	for d in /sys/class/net/pppoe-wan /sys/class/net/wan /sys/class/net/wwan; do
+		[ -e "$d" ] || continue
+		wan_dev=$(basename "$d")
+		break
+	done
+fi
+
 # ---------- CPU ----------
 cpu=""
 if [ -r /sys/class/thermal/thermal_zone0/temp ]; then
@@ -111,6 +141,13 @@ if [ -n "$wifi" ]; then
 	w=""
 	for t in $wifi; do w="$w ${t}°C"; done
 	out="${out:+$out | }WiFi:${w}"
+fi
+
+if [ -n "$wan_dev" ]; then
+	wan_r=$(wan_rate "$wan_dev")
+	wan_rx_mbps=$(echo "$wan_r" | awk '{print $1}')
+	wan_tx_mbps=$(echo "$wan_r" | awk '{print $2}')
+	out="${out:+$out | }WAN(${wan_dev}): ↓${wan_rx_mbps}Mbps ↑${wan_tx_mbps}Mbps"
 fi
 
 [ -n "$out" ] || out="No temperature info"
