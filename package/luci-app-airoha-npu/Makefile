@@ -16,6 +16,6 @@ LUCI_DEPENDS:=+luci-base +rpcd +luci-lib-jsonc @TARGET_airoha
 LUCI_DESCRIPTION:=查看Airoha AN7581 NPU硬件加速状态、流卸载信息、运行参数（中文优化版）
 LUCI_LANGS:=zh_CN en
 
-include $(TOPDIR)/feeds/luci/luci.mk
+include ../../luci.mk
 
 # call BuildPackage - OpenWrt buildroot signature
