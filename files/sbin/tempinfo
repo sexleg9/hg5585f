@@ -63,9 +63,13 @@ fi
 wifi=""
 for f in /sys/class/ieee80211/phy*/hwmon*/temp1_input; do
 	[ -r "$f" ] || continue
-	wifi="$wifi $(awk '{printf "%.1f", $1/1000}' "$f")"
+	t=$(awk '{printf "%.1f", $1/1000}' "$f")
+	wifi="$wifi $t"
 done
 wifi=${wifi# }
+# 取最高
+wifi=$(echo "$wifi" | tr ' ' '\n' | sort -rn | head -1)
+
 
 # ---------- PON ----------
 pon_dev=""
@@ -147,7 +151,7 @@ if [ -n "$wan_dev" ]; then
 	wan_r=$(wan_rate "$wan_dev")
 	wan_rx_mbps=$(echo "$wan_r" | awk '{print $1}')
 	wan_tx_mbps=$(echo "$wan_r" | awk '{print $2}')
-	out="${out:+$out | }WAN(${wan_dev}): ↓${wan_rx_mbps}Mbps ↑${wan_tx_mbps}Mbps"
+	out="${out:+$out | }WAN: ↓${wan_rx_mbps}Mbps ↑${wan_tx_mbps}Mbps"
 fi
 
 [ -n "$out" ] || out="No temperature info"
