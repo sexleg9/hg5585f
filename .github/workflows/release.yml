@@ -110,7 +110,7 @@ jobs:
       - name: 确认 luci-app-airoha-npu 已启用
         run: |
           if ! grep -q '^CONFIG_PACKAGE_luci-app-airoha-npu=y' .config; then
-            echo "::error::最终 .config 中没有启用 luci-app-airoha-npu"
+            echo "::error::最终 .config 中没有启用 luci-app-airoha-npu，中断编译"
             echo "--- airoha-npu 相关 ---"
             grep -i 'airoha-npu' .config || echo "(完全没有出现)"
             echo "--- 依赖状态 ---"
