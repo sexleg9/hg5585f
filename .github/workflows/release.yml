@@ -62,7 +62,12 @@ jobs:
           path: dl
           key: ponwrt-dl-${{ matrix.target }}-${{ hashFiles('feeds.conf.default', 'configs/*.config') }}
           restore-keys: |
-            ponwrt-dl-${{ matrix.target }}-
+            ponwrt-dl-${{ matrix.target }}
+
+      - name: 将自定义包放入标准目录
+        run: |
+          mkdir -p package/utils
+          mv package/luci-app-airoha-npu package/utils/ 2>/dev/null || true
 
       - name: Install feeds
         run: |
