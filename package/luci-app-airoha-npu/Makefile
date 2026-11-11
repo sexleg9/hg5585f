@@ -18,7 +18,7 @@ LUCI_LANGS:=zh_CN en
 
 include $(TOPDIR)/feeds/luci/luci.mk
 
-+define Package/luci-app-airoha-npu/install
+define Package/luci-app-airoha-npu/install
 	$(call LuciInstall,$(1))
 	chmod +x $(1)/usr/libexec/rpcd/luci.airoha_npu
 endef
