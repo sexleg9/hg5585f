@@ -153,9 +153,16 @@ jobs:
       - name: Create GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ inputs.tag }}
+          INPUT_TAG: ${{ inputs.tag }}
           PRERELEASE: ${{ inputs.prerelease }}
         run: |
+          # 如果 inputs.tag 为空，就用基于日期时间的自动 tag
+          if [ -n "$INPUT_TAG" ]; then
+            RELEASE_TAG="$INPUT_TAG"
+          else
+            RELEASE_TAG="build-$(date +%Y%m%d-%H%M)"
+          fi
+
           args=(
             "$RELEASE_TAG"
             release/*.tar.zst
