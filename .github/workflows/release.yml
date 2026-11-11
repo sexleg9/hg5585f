@@ -65,9 +65,18 @@ jobs:
           restore-keys: |
             ponwrt-dl-${{ matrix.target }}-
 
+      - name: Clean feeds and build cache
+        run: |
+          rm -rf feeds
+          rm -rf package/feeds
+          rm -rf tmp
+          rm -rf staging_dir
+          rm -rf build_dir
+          rm -rf bin
+          ./scripts/feeds update -a
+
       - name: Install feeds
         run: |
-          ./scripts/feeds update -a
           mkdir -p feeds/luci/applications
           cp -r package/luci-app-airoha-npu feeds/luci/applications/
           ./scripts/feeds install -a
