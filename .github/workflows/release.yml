@@ -69,6 +69,10 @@ jobs:
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
+      - name: 确认 luci.mk 位置
+        run: |
+          ls -la $(pwd)/feeds/luci/luci.mk || echo "找不到 luci.mk"
+          
       - name: Load repository signing key
         env:
           PONWRT_APK_PRIVATE_KEY: ${{ secrets.PONWRT_APK_PRIVATE_KEY }}
