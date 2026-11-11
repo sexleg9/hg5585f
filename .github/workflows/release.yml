@@ -67,9 +67,11 @@ jobs:
       - name: Install feeds
         run: |
           ./scripts/feeds update -a
+          rm -rf feeds/packages/admin/bottom
           mkdir -p feeds/luci/applications
           cp -r package/luci-app-airoha-npu feeds/luci/applications/
           ./scripts/feeds install -a
+          ./scripts/feeds install luci-app-airoha-npu
 
       - name: Load repository signing key
         env:
