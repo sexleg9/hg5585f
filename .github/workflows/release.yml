@@ -62,22 +62,18 @@ jobs:
           path: dl
           key: ponwrt-dl-${{ matrix.target }}-${{ hashFiles('feeds.conf.default', 'configs/*.config') }}
           restore-keys: |
-            ponwrt-dl-${{ matrix.target }}
+            ponwrt-dl-${{ matrix.target }}-
 
-      - name: 将自定义包放入标准目录
+      - name: 注册本地 package 为 feed
         run: |
-          mkdir -p package/utils
-          mv package/luci-app-airoha-npu package/utils/ 2>/dev/null || true
+          cp feeds.conf.default feeds.conf
+          echo "src-link local_pkgs $PWD/package" >> feeds.conf
 
       - name: Install feeds
         run: |
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
-      - name: 确认 luci.mk 位置
-        run: |
-          ls -la $(pwd)/feeds/luci/luci.mk || echo "找不到 luci.mk"
-          
       - name: Load repository signing key
         env:
           PONWRT_APK_PRIVATE_KEY: ${{ secrets.PONWRT_APK_PRIVATE_KEY }}
@@ -90,10 +86,10 @@ jobs:
 
       - name: 确认包是否被构建系统注册
         run: |
-          echo "=== package 目录结构 ==="
-          ls -la package/ | grep airoha
+          echo "=== 包目录结构 ==="
+          ls -la package/luci-app-airoha-npu/ 2>/dev/null || echo "包目录不存在"
           echo "=== 尝试列出包元数据 ==="
-          make package/luci-app-airoha-npu/DUMP=1 2>&1 | head -20 || echo "包未被识别"
+          make package/luci-app-airoha-npu/DUMP=1 2>&1 | head -30 || echo "包未被识别"
 
       - name: Configure ${{ matrix.target }}
         run: |
