@@ -278,6 +278,21 @@ fi
 [ -f /sbin/tempinfo ] && chmod 0755 /sbin/tempinfo
 
 # ---------------------------------------------------------------------------
+# 7b. luci-app-airoha-npu 权限兜底
+#
+#    luci-app-airoha-npu 的 rpcd 脚本必须可执行，否则 rpcd 不会加载它，
+#    LuCI 前端会报 "Object not found"（RPC call to luci.airoha_npu/getStatus）。
+#    编译时 Makefile 若未正确设置权限，这里在首次启动补上并重启 rpcd。
+# ---------------------------------------------------------------------------
+if [ -f /usr/libexec/rpcd/luci.airoha_npu ]; then
+	chmod +x /usr/libexec/rpcd/luci.airoha_npu 2>/dev/null
+	/etc/init.d/rpcd restart
+	log "已修复 luci.airoha_npu 权限并重启 rpcd"
+else
+	log "未找到 luci.airoha_npu（luci-app-airoha-npu 未安装？）"
+fi
+
+# ---------------------------------------------------------------------------
 # 8. 时间同步与时区
 # ---------------------------------------------------------------------------
 uci -q batch <<EOF
