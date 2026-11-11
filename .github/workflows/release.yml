@@ -84,25 +84,6 @@ jobs:
             openssl ec -in private-key.pem -pubout -out public-key.pem
           fi
 
-      - name: 定位包实际路径
-        id: pkgpath
-        run: |
-          PKG_DIR=$(find package/ -maxdepth 4 -type d -name "luci-app-airoha-npu" | head -1)
-          if [ -z "$PKG_DIR" ]; then
-            echo "::error::找不到 luci-app-airoha-npu 包目录"
-            exit 1
-          fi
-          echo "找到包目录: $PKG_DIR"
-          echo "dir=$PKG_DIR" >> "$GITHUB_OUTPUT"
-
-      - name: 确认包是否被构建系统注册
-        run: |
-          PKG_DIR="${{ steps.pkgpath.outputs.dir }}"
-          echo "=== 包目录内容 ==="
-          ls -la "$PKG_DIR"
-          echo "=== 尝试列出包元数据 ==="
-          make "$PKG_DIR/DUMP=1" 2>&1 | head -30 || echo "DUMP 失败"
-
       - name: Configure ${{ matrix.target }}
         run: |
           ./scripts/kconfig.pl + \
@@ -124,14 +105,15 @@ jobs:
           fi
           echo "OK: .config 已启用 luci-app-airoha-npu"
 
+      - name: 预构建 sed 主机工具
+        run: make tools/sed/install -j1 V=s
+
       - name: Download sources
         run: make download -j"$(nproc)"
 
       - name: 详细编译 airoha-npu 以查看错误
         run: |
-          PKG_DIR="${{ steps.pkgpath.outputs.dir }}"
-          echo "编译路径: $PKG_DIR"
-          make "$PKG_DIR/compile" V=s -j1 2>&1 | tail -200
+          make package/luci-app-airoha-npu/compile V=s -j1 2>&1 | tail -200
 
       - name: Build ${{ matrix.target }}
         run: make -j"$(nproc)"
