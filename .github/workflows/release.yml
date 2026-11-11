@@ -86,6 +86,15 @@ jobs:
             configs/release.config > .config
           make defconfig
 
+      - name: 确认 luci-app-airoha-npu 已启用
+        run: |
+          if ! grep -q '^CONFIG_PACKAGE_luci-app-airoha-npu=y' .config; then
+            echo "::error::最终 .config 中没有启用 luci-app-airoha-npu"
+            grep -i 'airoha-npu' .config || true
+            exit 1
+          fi
+          echo "OK: .config 已启用 luci-app-airoha-npu"
+      
       - name: Download sources
         run: make download -j"$(nproc)"
 
