@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Release tag (留空则自动使用时间戳)
+        description: Release tag (留空则只编译，不创建 release)
         required: false
         type: string
       prerelease:
@@ -33,7 +33,7 @@ jobs:
           - an7581
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - name: Free build space
         run: |
@@ -66,11 +66,28 @@ jobs:
 
       - name: Install feeds
         run: |
+          set -e
           ./scripts/feeds update -a
           rm -rf feeds/packages/admin/bottom
+          echo "=== 源目录 ==="
+          if [ ! -d package/luci-app-airoha-npu ]; then
+            echo "::error::源目录 package/luci-app-airoha-npu 不存在"
+            ls -la package/ | head -30
+            exit 1
+          fi
+          ls -la package/luci-app-airoha-npu/
           mkdir -p feeds/luci/applications
           cp -r package/luci-app-airoha-npu feeds/luci/applications/
-          ./scripts/feeds install -a
+          echo "=== 复制后 ==="
+          if [ ! -d feeds/luci/applications/luci-app-airoha-npu ]; then
+            echo "::error::复制后目录不存在"
+            ls -la feeds/luci/applications/ | head -30
+            exit 1
+          fi
+          ls -la feeds/luci/applications/luci-app-airoha-npu/
+          echo "=== 全量安装 ==="
+          ./scripts/feeds install -a || true
+          echo "=== 单独安装 luci-app-airoha-npu ==="
           ./scripts/feeds install luci-app-airoha-npu
 
       - name: Load repository signing key
