@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Release tag (留空则只编译，不创建 release)
+        description: Release tag (留空则自动使用时间戳)
         required: false
         type: string
       prerelease:
@@ -64,17 +64,12 @@ jobs:
           restore-keys: |
             ponwrt-dl-${{ matrix.target }}-
 
-      - name: 注册本地 package 为 feed
-        run: |
-          cp feeds.conf.default feeds.conf
-          echo "src-link local_pkgs $PWD/package" >> feeds.conf
-
       - name: Install feeds
         run: |
           ./scripts/feeds update -a
-          rm -rf feeds/packages/admin/bottom
-          ./scripts/feeds install -a -p luci
-          ./scripts/feeds install -a -p local_pkgs
+          mkdir -p feeds/luci/applications
+          cp -r package/luci-app-airoha-npu feeds/luci/applications/
+          ./scripts/feeds install -a
 
       - name: Load repository signing key
         env:
@@ -107,15 +102,8 @@ jobs:
           fi
           echo "OK: .config 已启用 luci-app-airoha-npu"
 
-      - name: 预构建 sed 主机工具
-        run: make -C tools/sed install -j1 V=s
-
       - name: Download sources
         run: make download -j"$(nproc)"
-
-      - name: 详细编译 airoha-npu 以查看错误
-        run: |
-          make package/luci-app-airoha-npu/compile V=s -j1 2>&1 | tail -200
 
       - name: Build ${{ matrix.target }}
         run: make -j"$(nproc)"
