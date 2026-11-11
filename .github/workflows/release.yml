@@ -33,7 +33,7 @@ jobs:
           - an7581
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Free build space
         run: |
@@ -90,7 +90,12 @@ jobs:
         run: |
           if ! grep -q '^CONFIG_PACKAGE_luci-app-airoha-npu=y' .config; then
             echo "::error::最终 .config 中没有启用 luci-app-airoha-npu"
-            grep -i 'airoha-npu' .config || true
+            echo "--- airoha-npu 相关 ---"
+            grep -i 'airoha-npu' .config || echo "(完全没有出现)"
+            echo "--- 依赖状态 ---"
+            grep -E 'CONFIG_PACKAGE_(luci-base|rpcd|luci-lib-jsonc)=' .config || true
+            echo "--- 平台 ---"
+            grep -E 'CONFIG_TARGET_airoha(=|_)' .config | head -5
             exit 1
           fi
           echo "OK: .config 已启用 luci-app-airoha-npu"
