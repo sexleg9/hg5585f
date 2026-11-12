@@ -615,7 +615,7 @@ jobs:
 
           PROXY="${{ inputs.proxy }}"; PROXY="${PROXY:-honk}"
           {
-            echo "PonWrt for FiberHome HG5585F（Airoha AN7581，联通 10G-EPON 非对称）"
+            echo "PonWrt for FiberHome HG5585F"
             echo ""
             echo "- 源码 commit：\`${{ env.COMMIT }}\`"
             echo "- 上游同步：\`${UPSTREAM_SHA:-未同步（tag 构建/关闭）}\`"
@@ -635,8 +635,8 @@ jobs:
             echo ""
             echo "## 预置"
             echo ""
-            echo "- PON：\`epon-10g-1g\` + OAM \`ctc\` + \`ge_ports=4\`"
-            echo "- 形态：PPPoE 主路由（\`wan=pon0.995/pppoe/mtu1492\`，\`wan6=dhcpv6\`，\`br-lan=lan1..4\`，LAN \`192.168.31.1/24\`）"
+            echo "- PON：\`X-Gpon\` + OAM \`ctc\` + \`ge_ports=4\`"
+            echo "- 形态：PPPoE 主路由（\`wan=pon0.41/pppoe/mtu1492\`，\`wan6=dhcpv6\`，\`br-lan=lan1..4\`，LAN \`192.168.31.1/24\`）"
             echo "- \`pon-watchdog\` 默认启用（兜底上游 Issue #42 的 10G-EPON 冷启动 MPCP 自循环）"
             echo "- WiFi 默认关闭；UPnP / br_netfilter / EN7572 不启用；BTF 仅在 dae/honk 分流变体启用"
             echo ""
