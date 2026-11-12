@@ -1,12 +1,16 @@
 name: Release PonWrt
 
 on:
+  push:
+    tags:
+      - 'v*'
   workflow_dispatch:
     inputs:
       tag:
-        description: Release tag
+        description: 'Release 标签（留空 = tag 触发用 ref 名，手动触发用 v<日期>-<短SHA>）'
         required: false
         type: string
+        default: ''
       prerelease:
         description: Mark as prerelease
         required: true
@@ -17,7 +21,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: release-${{ inputs.tag }}
+  group: release-${{ inputs.tag || github.ref_name }}
   cancel-in-progress: false
 
 jobs:
@@ -139,6 +143,26 @@ jobs:
       contents: write
 
     steps:
+      - name: Resolve release tag
+        id: tag
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+          REF_NAME: ${{ github.ref_name }}
+          REF_TYPE: ${{ github.ref_type }}
+          SHA: ${{ github.sha }}
+        run: |
+          if [ -n "$INPUT_TAG" ]; then
+            TAG="$INPUT_TAG"
+          elif [ "$REF_TYPE" = "tag" ]; then
+            TAG="$REF_NAME"
+          else
+            SHORT_SHA="${SHA:0:7}"
+            DATE="$(date -u +%Y%m%d)"
+            TAG="v${DATE}-${SHORT_SHA}"
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Resolved release tag: $TAG"
+
       - name: Download firmware archives
         uses: actions/download-artifact@v4
         with:
@@ -153,16 +177,9 @@ jobs:
       - name: Create GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
-          INPUT_TAG: ${{ inputs.tag }}
+          RELEASE_TAG: ${{ steps.tag.outputs.tag }}
           PRERELEASE: ${{ inputs.prerelease }}
         run: |
-          # 如果 inputs.tag 为空，就用基于日期时间的自动 tag
-          if [ -n "$INPUT_TAG" ]; then
-            RELEASE_TAG="$INPUT_TAG"
-          else
-            RELEASE_TAG="build-$(date +%Y%m%d-%H%M)"
-          fi
-
           args=(
             "$RELEASE_TAG"
             release/*.tar.zst
