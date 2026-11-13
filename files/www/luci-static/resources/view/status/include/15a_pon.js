@@ -7,25 +7,6 @@
 'require rpc';
 'require uci';
 
-/*
- * PON status card for the status overview page.
- *
- * view/status/index.js scans view/status/include/ and renders every *.js file
- * it finds there, ordered by file name. This file is named 29a_pon.js so that
- * it sorts between 29_ports.js (port status) and 30_network.js (network),
- * which is where the card belongs. No patch to luci-mod-status is required.
- *
- * Data sources (Airoha PON userspace stack):
- *   uci pon                 xpon sections name the PON netdev of each line
- *   ponctl --json           line state and optical frontend readings
- *   ubus network.device     byte counters for the port rates (sysfs fallback)
- *
- * When no xpon section carries a device, the pon config is missing, or
- * ponctl is unavailable on every line, load() rejects and the overview page
- * hides the whole card - that is what keeps non-PON devices free of an empty
- * section.
- */
-
 var PONCTL = '/usr/sbin/ponctl';
 
 var prevRates = {};
@@ -35,14 +16,6 @@ var callDeviceStatus = rpc.declare({
 	object: 'network.device',
 	method: 'status'
 });
-
-/*
- * Colors are never hardcoded on text: every value inherits the theme text
- * color (Argon: --text-color, light #525f7f / dark #ccc) and the heads use
- * the ifacebox-head pair (--iface-head-bg / --iface-head-text), exactly like
- * the network port cards in 29_ports.js. Secondary text is muted with
- * opacity instead of a fixed grey so it follows light/dark themes.
- */
 
 var LIFECYCLE_LABEL = {
 	'operational': '在线',
@@ -92,9 +65,15 @@ function readFrontend(device) {
 			if (snapshot.schema_version !== 1)
 				throw new Error('unsupported schema');
 
+			var fe = L.isObject(snapshot.frontend) ? snapshot.frontend : {};
+
 			return {
 				line: L.isObject(snapshot.line) ? snapshot.line : {},
-				frontend: L.isObject(snapshot.frontend) ? snapshot.frontend : {},
+				frontend: {
+					rx_power_dbm: fe.rx_power_dbm,
+					tx_power_dbm: fe.tx_power_dbm,
+					temperature_celsius: fe.temperature_celsius
+				},
 				registration: L.isObject(snapshot.registration) ? snapshot.registration : {}
 			};
 		}
@@ -245,12 +224,6 @@ function lineState(line) {
 	};
 }
 
-/*
- * Port rate block: grey ifacebox-head strip, two rows for the upstream
- * and downstream rates. The ifacebox classes come from the theme
- * (luci-theme-argon cascade.css), so the block follows the light/dark
- * theme like the port status cards do.
- */
 function ratePanel(rate) {
 	var ok = (rate != null && !rate.error && rate.rx != null && rate.tx != null);
 
@@ -280,14 +253,6 @@ function ratePanel(rate) {
 	]);
 }
 
-/*
- * Optical power diagnostic panel, drawn after the reference design: the
- * live reading with a severity pill above a zone scale carrying a marker
- * at the current value. Zone boundaries follow the ONU power budget:
- *   RX (dBm): < -29 fault | -29..-27 warning | -27..-8 normal
- *             (-22..-12 is the ideal band) | > -8 overload
- *   TX (dBm): < +0.5 below the window | +0.5..+5 good | > +5 overload
- */
 var PWR_ZONE = {
 	fault: '#f2b3b3',
 	warn: '#f6d9a6',
@@ -382,11 +347,6 @@ function powerPanel(kind, title, frontend, field, zones, range, ticks, hasSignal
 		}, t.label);
 	}
 
-	/*
-	 * The bar must override the theme rule
-	 * .network-status-table .ifacebox-body > div { gap: .5rem;
-	 * flex-wrap: wrap }, otherwise the zone segments come apart.
-	 */
 	var bar = E('div', { 'style': 'position: relative; height: 9px; border-radius: 4px; overflow: hidden; display: flex; flex-wrap: nowrap; gap: 0' },
 		zones.map(function(z) {
 			return E('div', { 'style': 'flex: ' + (z.to - z.from) + ' 1 0; background: ' + z.color });
@@ -422,53 +382,7 @@ function powerPanel(kind, title, frontend, field, zones, range, ticks, hasSignal
 		])
 	]);
 }
-/*
- * Module supply voltage and TX bias current as one block, laid out like
- * the rate panel: voltage on the upper row, bias current on the lower row.
- */
-function voltAmpPanel(frontend) {
-	function row(label, field, unit, digits) {
-		var value;
 
-		if (frontend == null || frontend.error)
-			value = '读取失败';
-		else if (!Object.prototype.hasOwnProperty.call(frontend, field))
-			value = '不支持';
-		else
-			value = Number(frontend[field]).toFixed(digits) + ' ' + unit;
-
-		return E('div', { 'style': 'display: flex; align-items: baseline; gap: 6px; flex-wrap: nowrap; white-space: nowrap' }, [
-			E('span', { 'style': 'width: 7px; height: 7px; border-radius: 50%; background: currentColor; opacity: 0.45; flex: 0 0 auto; align-self: center' }),
-			E('span', { 'style': 'font-size: 12px; opacity: 0.6' }, label),
-			E('strong', {
-				'style': 'font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums'
-			}, value)
-		]);
-	}
-
-	return E('div', { 'class': 'ifacebox', 'style': 'flex: 0 0 auto; margin: 0' }, [
-		E('div', {
-			'class': 'ifacebox-head',
-			'style': 'display: flex; align-items: center; gap: 5px; padding: 3px 10px; font-size: 12px; font-weight: 600'
-		}, [
-			E('span', { 'style': 'width: 7px; height: 7px; border-radius: 50%; background: currentColor; opacity: 0.45; flex: 0 0 auto' }),
-			'模块电压/电流'
-		]),
-		E('div', {
-			'class': 'ifacebox-body',
-			'style': 'display: flex; flex-direction: column; gap: 6px; padding: 6px 10px'
-		}, [
-			row('电压', 'voltage_volts', 'V', 4),
-			row('电流', 'tx_bias_ma', 'mA', 2)
-		])
-	]);
-}
-
-/*
- * Optical frontend temperature and the OMCI ONU lifecycle state as one
- * block: the temperature reading on the upper row, the colored O1-O7
- * badge (full state table as tooltip) on the lower row.
- */
 function tempStatePanel(frontend, onu) {
 	var value;
 
@@ -497,18 +411,6 @@ function tempStatePanel(frontend, onu) {
 	]);
 }
 
-/*
- * PON optical module icon with a UPC SC connector, drawn in the same
- * visual language as the luci-mod-status Ethernet port icons
- * (icons/port_up.svg / port_down.svg): 48x48 viewBox rendered at a 40px
- * footprint, metallic cage gradients, #888a85 outlines, round linecaps.
- * UPC (Ultra Physical Contact) is the flat-polish, blue-coded ferrule
- * used by PON SC ports, so the connector carries the UPC blue; XPON is
- * bidirectional over one fiber, so the green TX and blue RX beams both
- * leave that one port. Up: link LED plus both beams. Down: dimmed
- * module, dark port and amber LOS ticks like port_down. Inlined as a
- * data URI so the view stays a single file.
- */
 var PON_ICON_SVG_UP =
 	'<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 48 48">' +
 	'<defs>' +
@@ -562,11 +464,6 @@ function ponIcon(up) {
 	});
 }
 
-/*
- * The optics figure: the PON module icon with the lifecycle badge
- * underneath it. The wavelengths live in the power panel titles, so no
- * separate chips are drawn here.
- */
 function fiberGraphic(up, state) {
 	return E('div', { 'style': 'flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 6px' }, [
 		ponIcon(up),
@@ -597,12 +494,6 @@ function onuBadge(registration) {
 	}, code + ' ' + info.zh);
 }
 
-/*
- * The card carries no head strip: the device name and the colored title
- * bar were dropped, so the body row starts directly with the optics
- * figure. The ifacebox wrapper still provides the panel background and
- * border from the theme.
- */
 function renderBox(item) {
 	var state = lineState(item.line);
 	var onu = onuBadge(item.registration);
@@ -616,7 +507,6 @@ function renderBox(item) {
 				powerPanel('rx', '收光功率 Rx · ' + w[1] + ' nm', item.frontend, 'rx_power_dbm', RX_ZONES, RX_RANGE, RX_TICKS, hasSignal),
 				powerPanel('tx', '发光功率 Tx · ' + w[0] + ' nm', item.frontend, 'tx_power_dbm', TX_ZONES, TX_RANGE, TX_TICKS, hasSignal),
 				tempStatePanel(item.frontend, onu),
-				voltAmpPanel(item.frontend),
 				ratePanel(item.rate)
 			])
 		])
