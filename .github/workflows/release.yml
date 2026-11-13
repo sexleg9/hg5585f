@@ -82,7 +82,6 @@ jobs:
         run: |
           mkdir -p feeds/luci/applications
           cp -r package/luci-app-airoha-npu feeds/luci/applications/
-          cp -r package/luci-app-pon-status feeds/luci/applications/
           ./scripts/feeds install -a
 
       - name: Load repository signing key
